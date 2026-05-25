@@ -2,7 +2,7 @@
    AgriFresh – Shared App Logic (API + Local State)
    ============================================ */
 
-const API = 'http://localhost/agrifresh/api';
+const API = 'http://localhost/agrifarm/api';
 
 async function apiFetch(path, method = 'GET', body = null) {
   const opts = {
@@ -319,10 +319,139 @@ async function signupUser(name, email, password) {
 
   return data;
 }
-
 const PRODUCTS = [
-  { id: 1, name: 'Organic Tomatoes', category: 'Vegetables', price: 120, farmer: 'Ram Bahadur Farm, Chitwan', description: 'Freshly picked organic tomatoes grown without pesticides.', rating: 4.5, reviews: 128, image: 'https://images.unsplash.com/photo-1546470427-e26264be0b0d?w=400&q=80' },
-  { id: 2, name: 'Fresh Spinach', category: 'Vegetables', price: 80, farmer: 'Sita Devi Organics, Bhaktapur', description: 'Tender baby spinach leaves packed with nutrients.', rating: 4.2, reviews: 87, image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80' }
+  {
+    id: 1,
+    name: 'Organic Tomatoes',
+    category: 'Vegetables',
+    price: 120,
+    farmer: 'Ram Bahadur Farm, Chitwan',
+    description: 'Freshly picked organic tomatoes grown without pesticides.',
+    rating: 4.5,
+    reviews: 128,
+    image: "../uploads/Tomato.jpg"
+  },
+  {
+    id: 2,
+    name: 'Fresh Spinach',
+    category: 'Vegetables',
+    price: 80,
+    farmer: 'Sita Devi Organics, Bhaktapur',
+    description: 'Tender baby spinach leaves packed with nutrients.',
+    rating: 4.2,
+    reviews: 87,
+    image: "../uploads/spinach.jpg"
+  },
+  {
+    id: 3,
+    name: 'Potatoes',
+    category: 'Vegetables',
+    price: 60,
+    farmer: 'Himalaya Agro Farm',
+    description: 'Fresh hill potatoes rich in taste.',
+    rating: 4.1,
+    reviews: 54,
+    image: "../uploads/potato.jpg"
+  },
+  {
+    id: 4,
+    name: 'Carrots',
+    category: 'Vegetables',
+    price: 90,
+    farmer: 'Organic Valley Nepal',
+    description: 'Crunchy sweet carrots freshly harvested.',
+    rating: 4.3,
+    reviews: 66,
+    image: "../uploads/carrot.jpg"
+  },
+  {
+    id: 5,
+    name: 'Cabbage',
+    category: 'Vegetables',
+    price: 50,
+    farmer: 'Green Hill Farmers',
+    description: 'Fresh green cabbage grown in hills.',
+    rating: 4.0,
+    reviews: 40,
+    image: "../uploads/cabbage.jpg"
+  },
+  {
+    id: 6,
+    name: 'Onions',
+    category: 'Vegetables',
+    price: 70,
+    farmer: 'Terai Fresh Farm',
+    description: 'Red onions with strong flavor.',
+    rating: 4.2,
+    reviews: 52,
+    image: "../uploads/onion.jpg"
+  },
+  {
+    id: 7,
+    name: 'Apples',
+    category: 'Fruits',
+    price: 200,
+    farmer: 'Mustang Apple Farm',
+    description: 'Sweet and juicy apples from Mustang.',
+    rating: 4.7,
+    reviews: 190,
+    image: "../uploads/apple.jpg"
+  },
+  {
+    id: 8,
+    name: 'Bananas',
+    category: 'Fruits',
+    price: 100,
+    farmer: 'Terai Fruit Valley',
+    description: 'Fresh ripe bananas full of energy.',
+    rating: 4.3,
+    reviews: 112,
+    image: "../uploads/banana.jpg"
+  },
+  {
+    id: 9,
+    name: 'Mangoes',
+    category: 'Fruits',
+    price: 250,
+    farmer: 'Nepal Mango Garden',
+    description: 'Sweet juicy mangoes seasonal harvest.',
+    rating: 4.8,
+    reviews: 210,
+    image: "../uploads/mango.jpg"
+  },
+  {
+    id: 10,
+    name: 'Milk',
+    category: 'Dairy',
+    price: 70,
+    farmer: 'Happy Cow Dairy',
+    description: 'Pure fresh cow milk delivered daily.',
+    rating: 4.4,
+    reviews: 95,
+    image: "../uploads/milk.jpg"
+  },
+  {
+    id: 11,
+    name: 'Eggs',
+    category: 'Dairy',
+    price: 150,
+    farmer: 'Nepal Poultry Farm',
+    description: 'Farm fresh white eggs rich in protein.',
+    rating: 4.3,
+    reviews: 88,
+    image: "../uploads/eggs.jpg"
+  },
+  {
+    id: 12,
+    name: 'Garlic',
+    category: 'Vegetables',
+    price: 110,
+    farmer: 'Himalayan Spice Farm',
+    description: 'Strong aromatic garlic for cooking.',
+    rating: 4.2,
+    reviews: 61,
+    image: "../uploads/garlic.jpg"
+  }
 ];
 
 async function loadProducts(filters = {}) {

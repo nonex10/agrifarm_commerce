@@ -12,8 +12,8 @@ if ($category) { $sql .= " AND category = ?"; $params[] = $category; }
 if ($search)   { $sql .= " AND (name LIKE ? OR description LIKE ? OR farmer LIKE ?)";
                  $s = "%$search%"; $params = array_merge($params, [$s, $s, $s]); }
 
-$sql .= " LIMIT ?";
-$params[] = $limit;
+$limit = (int)($_GET['limit'] ?? 100);
+$sql .= " LIMIT $limit";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);

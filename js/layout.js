@@ -8,8 +8,8 @@ function getNavbarHTML(basePath = '') {
   <div class="container">
     <div class="navbar-inner">
       <a href="${basePath}index.html" class="navbar-logo">
-        <div class="navbar-logo-icon">A</div>
-        <span>AgriFresh</span>
+        <img src="${basePath}uploads/images.png" class="navbar-logo-icon-img" alt="AgriFresh Logo">
+<span>AgriFresh</span>
       </a>
       <div class="navbar-links">
         <a href="${basePath}index.html">Home</a>

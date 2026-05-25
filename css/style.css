@@ -225,6 +225,12 @@ label {
   font-size: 1rem;
   flex-shrink: 0;
 }
+.navbar-logo-icon-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  margin-right: 8px;
+}
 .navbar-links {
   display: flex;
   gap: 1.75rem;
