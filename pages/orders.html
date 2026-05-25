@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order History – AgriFresh Nepal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .orders-list { padding:2.5rem 0; }
+    .order-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; margin-bottom:1.25rem; }
+    .order-card-header { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; }
+    .order-id { font-weight:700; font-size:1rem; }
+    .order-date { font-size:.82rem; color:var(--muted-fg); margin-top:.15rem; }
+    .order-status { padding:.25rem .75rem; border-radius:999px; font-size:.75rem; font-weight:700; background:var(--primary-light); color:var(--primary); }
+    .order-items-preview { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .order-thumb { width:3rem; height:3rem; object-fit:cover; border-radius:.4rem; background:var(--muted); }
+    .order-total { font-size:.9rem; }
+    .order-total span { font-weight:700; color:var(--primary); }
+  </style>
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <main>
+    <section class="page-header">
+      <div class="container">
+        <h1>Order History</h1>
+        <p>Track your past purchases</p>
+      </div>
+    </section>
+
+    <div class="container orders-list" id="orders-root"></div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/layout.js"></script>
+  <script>
+    injectLayout('../');
+
+    function renderOrders() {
+      const root = document.getElementById('orders-root');
+      const orders = JSON.parse(localStorage.getItem('agri_orders') || '[]');
+
+      if (orders.length === 0) {
+        root.innerHTML = `
+          <div class="orders-empty">
+            <div class="icon">📦</div>
+            <h2>No orders yet</h2>
+            <p>Start shopping to see your orders here.</p>
+            <a href="products.html" class="btn btn-primary">Browse Products</a>
+          </div>`;
+        return;
+      }
+
+      root.innerHTML = orders.map(o => `
+        <div class="order-card">
+          <div class="order-card-header">
+            <div>
+              <p class="order-id">${o.id}</p>
+              <p class="order-date">${new Date(o.date).toLocaleDateString('en-NP', {year:'numeric',month:'long',day:'numeric'})}</p>
+            </div>
+            <span class="order-status">${o.status}</span>
+          </div>
+          <div class="order-items-preview">
+            ${o.items.map(i => `<img class="order-thumb" src="${i.image||''}" alt="${i.name}" title="${i.name} × ${i.quantity}" onerror="this.src='https://placehold.co/48x48/d4e9d4/2e6b31?text=?'">`).join('')}
+          </div>
+          <p class="text-muted" style="font-size:.85rem;margin-bottom:.5rem">📍 ${o.address}</p>
+          <p class="text-muted" style="font-size:.85rem;margin-bottom:.5rem">💳 Payment: ${o.payment === 'cod' ? 'Cash on Delivery' : o.payment.charAt(0).toUpperCase() + o.payment.slice(1)}</p>
+          <p class="order-total">${o.items.length} item${o.items.length !== 1 ? 's' : ''} · Total: <span>Rs. ${o.total.toLocaleString('en-NP')}</span></p>
+        </div>
+      `).join('');
+    }
+
+    renderOrders();
+  </script>
+</body>
+</html>

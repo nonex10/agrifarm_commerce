@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopping Cart – AgriFresh Nepal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <main>
+    <section class="page-header">
+      <div class="container">
+        <h1>Shopping Cart</h1>
+        <p>Review your items before checkout</p>
+      </div>
+    </section>
+
+    <div class="container" style="padding-top:2.5rem;padding-bottom:2.5rem;">
+      <div id="cart-root"></div>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/layout.js"></script>
+  <script>
+    injectLayout('../');
+    const VAT = 0.13;
+
+    function renderCart() {
+      const root = document.getElementById('cart-root');
+      const items = State.cart;
+
+      if (items.length === 0) {
+        root.innerHTML = `
+          <div style="text-align:center;padding:4rem 1rem">
+            <p style="font-size:3rem;margin-bottom:1rem">🛒</p>
+            <p class="text-muted" style="font-size:1.1rem;margin-bottom:1.5rem">Your cart is empty</p>
+            <a href="products.html" class="btn btn-primary">← Continue Shopping</a>
+          </div>`;
+        return;
+      }
+
+      const subtotal = State.cartTotal();
+      const vat = Math.round(subtotal * VAT);
+      const total = subtotal + vat;
+
+      root.innerHTML = `
+        <div class="cart-layout">
+          <div>
+            <div class="cart-items-list" id="items-list">
+              ${items.map(item => `
+                <div class="cart-item" data-id="${item.id}">
+                  <img class="cart-item-img" src="${item.image || ''}" alt="${item.name}" onerror="this.src='https://placehold.co/90x90/d4e9d4/2e6b31?text=?'">
+                  <div class="cart-item-info">
+                    <div>
+                      <a href="product.html?id=${item.id}"><h3>${item.name}</h3></a>
+                      <p class="farmer text-muted">${item.farmer}</p>
+                    </div>
+                    <p class="cart-item-price">Rs. ${item.price.toLocaleString('en-NP')}</p>
+                  </div>
+                  <div class="cart-item-actions">
+                    <div class="qty-control">
+                      <button class="qty-btn" data-action="dec" data-id="${item.id}">−</button>
+                      <span class="qty-num">${item.quantity}</span>
+                      <button class="qty-btn" data-action="inc" data-id="${item.id}">+</button>
+                    </div>
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.4rem">
+                      <strong class="cart-item-total">Rs. ${(item.price * item.quantity).toLocaleString('en-NP')}</strong>
+                      <button class="btn btn-destructive btn-sm" data-remove="${item.id}" title="Remove">🗑</button>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="order-summary">
+            <h2>Order Summary</h2>
+            <div class="summary-row"><span>Subtotal</span><span>Rs. ${subtotal.toLocaleString('en-NP')}</span></div>
+            <div class="summary-row"><span>Shipping</span><span>Free</span></div>
+            <div class="summary-row"><span>VAT (13%)</span><span>Rs. ${vat.toLocaleString('en-NP')}</span></div>
+            <div class="summary-row summary-total"><span>Total</span><span class="amount">Rs. ${total.toLocaleString('en-NP')}</span></div>
+            <div style="margin-top:1.5rem;display:flex;flex-direction:column;gap:.5rem">
+              <a href="checkout.html" class="btn btn-primary w-full">Proceed to Checkout</a>
+              <a href="products.html" class="btn btn-outline w-full">Continue Shopping</a>
+            </div>
+          </div>
+        </div>`;
+
+      document.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.dataset.id);
+          const item = State.cart.find(i => i.id === id);
+          if (!item) return;
+          if (btn.dataset.action === 'inc') State.updateQty(id, item.quantity + 1);
+          else State.updateQty(id, item.quantity - 1);
+          renderCart();
+        });
+      });
+      document.querySelectorAll('[data-remove]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          State.removeFromCart(parseInt(btn.dataset.remove));
+          renderCart();
+        });
+      });
+    }
+
+    renderCart();
+  </script>
+</body>
+</html>

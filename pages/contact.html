@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact – AgriFresh Nepal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <main>
+    <section class="page-header">
+      <div class="container">
+        <h1>💬 Contact Us</h1>
+        <p>We'd love to hear from you. Our team usually responds within 24 hours.</p>
+      </div>
+    </section>
+
+    <div class="container">
+      <div class="contact-layout">
+        <!-- Info -->
+        <div class="contact-info">
+          <h2>Get in touch</h2>
+
+          <div class="contact-detail">
+            <div class="contact-detail-icon">✉️</div>
+            <div>
+              <p>Email</p>
+              <a href="mailto:info@agrifresh.com.np" class="small">info@agrifresh.com.np</a>
+            </div>
+          </div>
+
+          <div class="contact-detail">
+            <div class="contact-detail-icon">📞</div>
+            <div>
+              <p>Phone</p>
+              <a href="tel:+9779801234567"><small>+977 980-1234567</small></a>
+            </div>
+          </div>
+
+          <div class="contact-detail">
+            <div class="contact-detail-icon">📍</div>
+            <div>
+              <p>Address</p>
+              <small>Bagbazar<br>Kathmandu, Nepal</small>
+            </div>
+          </div>
+
+          <div class="contact-detail">
+            <div class="contact-detail-icon">🕐</div>
+            <div>
+              <p>Business Hours</p>
+              <small>Sun – Fri: 9am – 6pm NPT<br>Sat: Closed</small>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--border);padding-top:1.25rem;margin-top:.5rem">
+            <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-fg);margin-bottom:.5rem">Quick Help</p>
+            <p style="font-size:.875rem">🚚 Track your order in <a href="orders.html" style="color:var(--primary)">Order History</a></p>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <div id="contact-form-root">
+          <div class="contact-form-card">
+            <h2>Send us a message</h2>
+            <div id="form-error"></div>
+            <form class="contact-form" id="contact-form" novalidate>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="cname">Full Name <span style="color:var(--destructive)">*</span></label>
+                  <input id="cname" name="name" class="input" type="text" required />
+                </div>
+                <div class="form-group">
+                  <label for="cemail">Email Address <span style="color:var(--destructive)">*</span></label>
+                  <input id="cemail" name="email" class="input" type="email" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="reason">Reason for Contact <span style="color:var(--destructive)">*</span></label>
+                <select id="reason" name="reason" class="select" required>
+                  <option value="">Select a reason…</option>
+                  <option>General Inquiry</option>
+                  <option>Order Support</option>
+                  <option>Product Feedback</option>
+                  <option>Technical Issue</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="subject">Subject <span style="color:var(--destructive)">*</span></label>
+                <input id="subject" name="subject" class="input" type="text" required />
+              </div>
+              <div class="form-group">
+                <label for="message">Message <span style="color:var(--destructive)">*</span></label>
+                <textarea id="message" name="message" class="textarea" rows="5" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary w-full" id="contact-btn">✉️ Send Message</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="../js/app.js"></script>
+  <script src="../js/layout.js"></script>
+  <script>
+    injectLayout('../');
+
+    document.getElementById('contact-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('cname').value.trim();
+      const email = document.getElementById('cemail').value.trim();
+      const reason = document.getElementById('reason').value;
+      const subject = document.getElementById('subject').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const errEl = document.getElementById('form-error');
+      const btn = document.getElementById('contact-btn');
+
+      if (!name || !email || !reason || !subject || !message) {
+        errEl.innerHTML = `<div class="alert-error">Please fill in all required fields.</div>`;
+        return;
+      }
+      errEl.innerHTML = '';
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Sending…`;
+
+      setTimeout(() => {
+        document.getElementById('contact-form-root').innerHTML = `
+          <div class="contact-success contact-form-card">
+            <div class="check">✅</div>
+            <h2>Message Sent!</h2>
+            <p>Thank you, <strong>${name}</strong>! We'll get back to you at <strong>${email}</strong> within 24 hours.</p>
+            <button class="btn btn-outline" onclick="window.location.reload()">Send another message</button>
+          </div>`;
+      }, 900);
+    });
+  </script>
+</body>
+</html>
