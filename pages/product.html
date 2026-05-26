@@ -83,7 +83,7 @@
           <a href="products.html" class="back-link">← Back to Products</a>
           <div class="product-detail-grid">
             <div class="product-detail-img">
-              <img src="${product.image || ''}" alt="${product.name}" onerror="this.src='https://placehold.co/600x450/d4e9d4/2e6b31?text=Product'">
+              <img src="${resolveImage(product.image)}" alt="${product.name || ''}" onerror="this.src='https://placehold.co/600x450/d4e9d4/2e6b31?text=Product'">
             </div>
             <div class="product-detail-info">
               <span class="badge mb-2">${product.category}</span>

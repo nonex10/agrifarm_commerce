@@ -106,3 +106,9 @@ INSERT INTO products (id, name, category, price, farmer, description, rating, re
 (10, 'Milk',             'Dairy',       70,  'Happy Cow Dairy',               'Pure fresh cow milk delivered daily.',                       4.4,  95, 'uploads/milk.jpg'),
 (11, 'Eggs',             'Dairy',      150,  'Nepal Poultry Farm',            'Farm fresh white eggs rich in protein.',                     4.3,  88, 'uploads/eggs.jpg'),
 (12, 'Garlic',           'Vegetables', 110,  'Himalayan Spice Farm',          'Strong aromatic garlic for cooking.',                        4.2,  61, 'uploads/garlic.jpg');
+
+
+
+ALTER TABLE orders 
+ADD COLUMN transaction_uuid VARCHAR(100) NULL AFTER id,
+ADD COLUMN payment_status VARCHAR(50) DEFAULT 'Unpaid' AFTER payment_method;

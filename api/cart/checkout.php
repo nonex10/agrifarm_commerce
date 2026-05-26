@@ -68,7 +68,7 @@ try {
     $orderStmt->execute();
 
     $orderId = (int) $pdo->lastInsertId();
-    $transaction_uuid = "ORD-" . $orderId;
+    $transaction_uuid = "ORD-" . $orderId . "-" . time() . "-" . bin2hex(random_bytes(4));
 
     /* 2. Insert order_items */
     $itemStmt = $pdo->prepare(

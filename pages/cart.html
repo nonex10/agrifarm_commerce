@@ -54,7 +54,10 @@
             <div class="cart-items-list" id="items-list">
               ${items.map(item => `
                 <div class="cart-item" data-id="${item.id}">
-                  <img class="cart-item-img" src="${item.image || ''}" alt="${item.name}" onerror="this.src='https://placehold.co/90x90/d4e9d4/2e6b31?text=?'">
+                  <img class="cart-item-img"
+                    src="${resolveImage(item.image)}"
+                    alt="${item.name}"
+                    onerror="this.src='https://placehold.co/90x90/d4e9d4/2e6b31?text=?'">
                   <div class="cart-item-info">
                     <div>
                       <a href="product.html?id=${item.id}"><h3>${item.name}</h3></a>
