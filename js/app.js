@@ -324,8 +324,9 @@ async function placeOrder(orderPayload) {
   if (result.success || result.order_id) {
     const localOrder = {
       ...orderPayload,
-      id:    result.order_id || orderPayload.id,
-      db_id: result.order_id ? parseInt(result.order_id.replace('ORD-', ''), 10) : null,
+      id:      result.order_id || orderPayload.id,
+      db_id:   result.order_id ? parseInt(result.order_id.replace('ORD-', ''), 10) : null,
+      user_id: State.user ? State.user.id : null,   // tag with current user
     };
     const orders = JSON.parse(localStorage.getItem('agri_orders') || '[]');
     orders.unshift(localOrder);
@@ -336,7 +337,12 @@ async function placeOrder(orderPayload) {
 }
 
 async function loadOrders() {
-  const localOrders = JSON.parse(localStorage.getItem('agri_orders') || '[]');
+  const allLocal = JSON.parse(localStorage.getItem('agri_orders') || '[]');
+
+  // Filter localStorage orders to only those belonging to the current user
+  const currentUserId  = State.user ? State.user.id : null;
+  const localOrders    = allLocal.filter(o => o.user_id === currentUserId);
+
   if (!State.user) return localOrders;
 
   const data = await apiFetch('/orders/list.php');
@@ -345,15 +351,16 @@ async function loadOrders() {
     return localOrders;
   }
 
+  // Merge DB orders with any localStorage-only entries for this user
   const dbOrders  = data.orders || [];
-  const dbIds     = new Set(dbOrders.map(o => o.id));
-  const localOnly = localOrders.filter(o => !dbIds.has(o.id));
+  const dbIds     = new Set(dbOrders.map(o => String(o.id)));
+  const localOnly = localOrders.filter(o => !dbIds.has(String(o.db_id)));
   return [...dbOrders, ...localOnly];
 }
 
 async function deleteOrder(orderId, dbId) {
-  const localOrders = JSON.parse(localStorage.getItem('agri_orders') || '[]');
-  const updated     = localOrders.filter(o => o.id !== orderId);
+  const allLocal = JSON.parse(localStorage.getItem('agri_orders') || '[]');
+  const updated  = allLocal.filter(o => o.id !== orderId);
   localStorage.setItem('agri_orders', JSON.stringify(updated));
 
   if (dbId && State.user) {
@@ -361,7 +368,7 @@ async function deleteOrder(orderId, dbId) {
     if (result.error) {
       console.warn('[AgriFresh] Server delete failed:', result.error);
       const revert   = JSON.parse(localStorage.getItem('agri_orders') || '[]');
-      const original = localOrders.find(o => o.id === orderId);
+      const original = allLocal.find(o => o.id === orderId);
       if (original) { revert.unshift(original); localStorage.setItem('agri_orders', JSON.stringify(revert)); }
       return false;
     }
