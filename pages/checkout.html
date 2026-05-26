@@ -92,7 +92,6 @@
       root.innerHTML = `
         <div class="checkout-layout">
           <div>
-            <!-- SHIPPING -->
             <div class="checkout-section">
               <h2>📍 Shipping Address</h2>
               <div class="checkout-form" id="checkout-form">
@@ -132,7 +131,6 @@
               </div>
             </div>
 
-            <!-- PAYMENT -->
             <div class="checkout-section">
               <h2>💳 Payment Method</h2>
               <div class="payment-options">
@@ -149,7 +147,6 @@
 
               </div>
 
-              <!-- Info shown when eSewa is selected -->
               <div id="esewa-info">
                 ✅ You'll be redirected to eSewa to complete your payment after placing the order.
               </div>
@@ -161,7 +158,6 @@
             </button>
           </div>
 
-          <!-- ORDER SUMMARY SIDEBAR -->
           <div class="order-summary" style="position:sticky;top:5rem;">
             <h2>Order Summary</h2>
             ${items.map(i => `
@@ -215,15 +211,13 @@
 
         const fullAddress = `${fname} ${lname}, ${address}, ${city}, ${district}`;
 
+        // Ensure you're returning the JSON payload from the backend correctly inside app.js 
         const result = await placeOrder({
-          id:            'ORD-' + Date.now(),
           items,
           total,
           address:       fullAddress,
           payment,
-          customer_name: `${fname} ${lname}`,
-          date:          new Date().toISOString(),
-          status:        'Confirmed',
+          customer_name: `${fname} ${lname}`
         });
 
         btn.disabled  = false;
@@ -239,96 +233,38 @@
         State.saveCart();
         updateNavBadges();
 
-        const orderId = result.order_id || 'ORD-' + Date.now();
-
-        if (payment === 'esewa') {
-          /* Redirect to eSewa with order details */
-          redirectToEsewa(total, orderId);
+        if (payment === 'esewa' && result.esewa) {
+          /* Redirect to eSewa with securely pre-configured payload from the backend */
+          redirectToEsewa(result.esewa);
         } else {
-          showSuccess(orderId, payment);
+          showSuccess(result.order_id, payment);
         }
       });
     }
 
-    /* ── eSewa redirect ───────────────────────────────────────
-       Uses eSewa's test/UAT endpoint. For production change the
-       action URL to: https://esewa.com.np/epay/main
-       -------------------------------------------------------- */
-    // function redirectToEsewa(amount, orderId) {
-    //   const ESEWA_URL = 'https://uat.esewa.com.np/epay/main'; // UAT (test)
-    //   // const ESEWA_URL = 'https://esewa.com.np/epay/main';  // Production
+    /* ── eSewa redirect ─────────────────────────────────────── */
+    function redirectToEsewa(esewaConfig) {
+      // eSewa UAT v2 endpoint (Change to https://epay.esewa.com.np/api/epay/main/v2/form for production)
+      const ESEWA_URL = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
 
-    //   const params = {
-    //     amt:        amount,          // product amount
-    //     psc:        0,               // product service charge
-    //     pdc:        0,               // product delivery charge
-    //     txAmt:      0,               // tax amount
-    //     tAmt:       amount,          // total amount
-    //     pid:        orderId,         // unique product/order ID
-    //     scd:        'EPAYTEST',      // merchant code (use your real code in production)
-    //     su:         `${window.location.origin}/agrifarm/pages/esewa-success.html?oid=${orderId}&amt=${amount}`,
-    //     fu:         `${window.location.origin}/agrifarm/pages/checkout.html`,
-    //   };
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = ESEWA_URL;
+      form.style.display = 'none';
 
-    //   // Build and auto-submit a form (eSewa requires POST)
-    //   const form = document.createElement('form');
-    //   form.method = 'POST';
-    //   form.action = ESEWA_URL;
+      // Dynamically map backend configuration into the form
+      Object.entries(esewaConfig).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      });
 
-    //   Object.entries(params).forEach(([key, val]) => {
-    //     const input = document.createElement('input');
-    //     input.type  = 'hidden';
-    //     input.name  = key;
-    //     input.value = val;
-    //     form.appendChild(input);
-    //   });
+      document.body.appendChild(form);
+      form.submit();
+    }
 
-    //   document.body.appendChild(form);
-    //   form.submit();
-    // }
-    function redirectToEsewa(amount, orderId) {
-
-// eSewa UAT v2 endpoint
-const ESEWA_URL = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
-
-const params = {
-  amount: amount,
-  tax_amount: 0,
-  total_amount: amount,
-  transaction_uuid: orderId,
-  product_code: 'EPAYTEST',
-
-  product_service_charge: 0,
-  product_delivery_charge: 0,
-
-  success_url:
-    `${window.location.origin}/agrifarm/pages/esewa-success.html?oid=${orderId}`,
-
-  failure_url:
-    `${window.location.origin}/agrifarm/pages/checkout.html`,
-
-  signed_field_names:
-    'total_amount,transaction_uuid,product_code',
-
-  signature:
-    'YOUR_GENERATED_SIGNATURE'
-};
-
-const form = document.createElement('form');
-form.method = 'POST';
-form.action = ESEWA_URL;
-
-Object.entries(params).forEach(([key, value]) => {
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = key;
-  input.value = value;
-  form.appendChild(input);
-});
-
-document.body.appendChild(form);
-form.submit();
-}
     /* ── Success screen (COD) ─────────────────────────────── */
     function showSuccess(orderId, payment) {
       document.getElementById('checkout-root').innerHTML = `
@@ -336,7 +272,7 @@ form.submit();
           <div class="icon">🎉</div>
           <h1>Order Placed!</h1>
           <p>Your order <strong>${orderId}</strong> has been confirmed.<br>
-             Payment: <strong>Cash on Delivery</strong></p>
+            Payment: <strong>Cash on Delivery</strong></p>
           <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
             <a href="orders.html" class="btn btn-primary">View My Orders</a>
             <a href="products.html" class="btn btn-outline">Continue Shopping</a>

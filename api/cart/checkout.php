@@ -7,6 +7,7 @@
 header('Content-Type: application/json');
 
 require_once '../config.php';
+session_start();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respond(["error" => "Method not allowed"], 405);
@@ -20,9 +21,9 @@ if (!is_array($data)) {
 /* ── Extract & sanitise fields ────────────────────────────── */
 $items         = $data['items']        ?? [];
 $total         = (float)  ($data['total']         ?? 0);
-$address       = trim(    ($data['address']        ?? ''));
-$payment       = trim(    ($data['payment']        ?? 'cod'));
-$customer_name = trim(    ($data['customer_name']  ?? 'Guest'));
+$address       = trim(    ($data['address']       ?? ''));
+$payment       = trim(    ($data['payment']       ?? 'cod'));
+$customer_name = trim(    ($data['customer_name'] ?? 'Guest'));
 
 $allowed_payments = ['cod', 'esewa', 'khalti', 'bank'];
 if (!in_array($payment, $allowed_payments, true)) {
@@ -43,26 +44,31 @@ if (empty($address)) {
 /* ── User from session (NULL for guests) ──────────────────── */
 $userId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
 
+/* Set order status conditionally */
+$initial_status = ($payment === 'esewa') ? 'Pending' : 'Confirmed';
+
 /* ── Insert wrapped in a transaction ─────────────────────── */
 try {
     $pdo->beginTransaction();
 
-    /* 1. Insert order row – bind null user_id explicitly */
+    /* 1. Insert order row */
     $orderStmt = $pdo->prepare(
         "INSERT INTO orders
             (user_id, customer_name, total, status, payment_method, address)
             VALUES
-            (:user_id, :customer_name, :total, 'Confirmed', :payment, :address)"
+            (:user_id, :customer_name, :total, :status, :payment, :address)"
     );
 
     $orderStmt->bindValue(':user_id',       $userId,        $userId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
     $orderStmt->bindValue(':customer_name', $customer_name, PDO::PARAM_STR);
-    $orderStmt->bindValue(':total',         $total,         PDO::PARAM_STR); // DECIMAL uses PARAM_STR in PDO
+    $orderStmt->bindValue(':total',         $total,         PDO::PARAM_STR); 
+    $orderStmt->bindValue(':status',        $initial_status,PDO::PARAM_STR);
     $orderStmt->bindValue(':payment',       $payment,       PDO::PARAM_STR);
     $orderStmt->bindValue(':address',       $address,       PDO::PARAM_STR);
     $orderStmt->execute();
 
     $orderId = (int) $pdo->lastInsertId();
+    $transaction_uuid = "ORD-" . $orderId;
 
     /* 2. Insert order_items */
     $itemStmt = $pdo->prepare(
@@ -91,11 +97,43 @@ try {
 
     $pdo->commit();
 
-    respond([
+    /* 3. Prepare response JSON */
+    $response = [
         "success"  => true,
-        "order_id" => "ORD-$orderId",
-        "message"  => "Order placed successfully",
-    ]);
+        "order_id" => $transaction_uuid,
+        "message"  => "Order recorded successfully",
+    ];
+
+    if ($payment === 'esewa') {
+        // eSewa HMAC-SHA256 Configuration (Sandbox)
+        $product_code = "EPAYTEST";
+        $secret_key = "8gBm/:&EnhH.1/q";
+        
+        $formatted_total = number_format($total, 2, '.', '');
+        
+        // Formulate Base Signature String
+        $signature_string = "total_amount={$formatted_total},transaction_uuid={$transaction_uuid},product_code={$product_code}";
+        $signature = base64_encode(hash_hmac('sha256', $signature_string, $secret_key, true));
+
+        // Dynamically locate root host to supply absolute URLs
+        $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'] . dirname(dirname(dirname($_SERVER['SCRIPT_NAME'])));
+
+        $response["esewa"] = [
+            "amount" => $formatted_total,
+            "tax_amount" => "0.00",
+            "total_amount" => $formatted_total,
+            "transaction_uuid" => $transaction_uuid,
+            "product_code" => $product_code,
+            "product_service_charge" => "0.00",
+            "product_delivery_charge" => "0.00",
+            "success_url" => $base_url . "/api/orders/payment-verify.php",
+            "failure_url" => $base_url . "/api/orders/payment-fail.php?transaction_uuid=" . urlencode($transaction_uuid),
+            "signed_field_names" => "total_amount,transaction_uuid,product_code",
+            "signature" => $signature
+        ];
+    }
+
+    respond($response);
 
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {
