@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AgriFresh Nepal – Farm to Table</title>
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="icon" type="image/png" href="../uploads/images.png">
+  <link rel="icon" type="image/png" href="uploads/logo.png">
 </head>
 <body>
   <div id="navbar-placeholder"></div>
@@ -71,23 +71,18 @@
   </main>
 
   <div id="footer-placeholder"></div>
-
   <script src="js/app.js"></script>
   <script src="js/layout.js"></script>
   <script>
     injectLayout('');
-    // Fix user section path
-    document.querySelectorAll('#user-section a, #mobile-auth-section a').forEach(a => {
-      a.href = a.href.replace('../pages/', 'pages/');
-    });
-    document.querySelectorAll('#user-section a[href*="orders"], .user-dropdown a[href*="orders"]').forEach(a => {
-      a.href = 'pages/orders.html';
-    });
 
+    // Load first 6 products from DB (falls back to hardcoded PRODUCTS array)
     const grid = document.getElementById('featured-products');
-    const featured = PRODUCTS.slice(0, 6);
-    grid.innerHTML = featured.map(p => productCardHTML(p, '')).join('');
-    bindProductCards(featured, grid);
+    loadProducts().then(products => {
+      const featured = products.slice(0, 6);
+      grid.innerHTML  = featured.map(p => productCardHTML(p, '')).join('');
+      bindProductCards(featured, grid);
+    });
   </script>
 </body>
 </html>

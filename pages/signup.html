@@ -13,7 +13,6 @@
     <div class="auth-card">
       <h1>Get Started</h1>
       <p class="subtitle">Create your AgriFresh account</p>
-
       <div id="error-msg"></div>
 
       <form class="auth-form" id="signup-form" novalidate>
@@ -44,22 +43,22 @@
   </main>
 
   <div id="footer-placeholder"></div>
-
   <script src="../js/app.js"></script>
   <script src="../js/layout.js"></script>
   <script>
     injectLayout('../');
 
-    document.getElementById('signup-form').addEventListener('submit', (e) => {
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
+      const name     = document.getElementById('name').value.trim();
+      const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const confirm = document.getElementById('confirm').value;
-      const errEl = document.getElementById('error-msg');
-      const btn = document.getElementById('submit-btn');
+      const confirm  = document.getElementById('confirm').value;
+      const errEl    = document.getElementById('error-msg');
+      const btn      = document.getElementById('submit-btn');
 
       errEl.innerHTML = '';
+
       if (!name || !email || !password) {
         errEl.innerHTML = `<div class="alert-error">Please fill in all fields.</div>`; return;
       }
@@ -70,23 +69,21 @@
         errEl.innerHTML = `<div class="alert-error">Password must be at least 6 characters.</div>`; return;
       }
 
-      btn.disabled = true;
+      btn.disabled  = true;
       btn.innerHTML = `<span class="spinner"></span> Creating account…`;
 
-      setTimeout(() => {
-        const users = JSON.parse(localStorage.getItem('agri_users') || '[]');
-        if (users.find(u => u.email === email)) {
-          errEl.innerHTML = `<div class="alert-error">An account with this email already exists.</div>`;
-          btn.disabled = false;
-          btn.textContent = 'Create Account';
-          return;
-        }
-        users.push({ name, email, password });
-        localStorage.setItem('agri_users', JSON.stringify(users));
-        State.user = { name, email };
-        State.saveUser();
-        window.location.href = '../index.html';
-      }, 800);
+      const result = await signupUser(name, email, password);
+
+      btn.disabled  = false;
+      btn.innerHTML = 'Create Account';
+
+      if (result.error) {
+        errEl.innerHTML = `<div class="alert-error">${result.error}</div>`;
+        return;
+      }
+
+      // Success – redirect home
+      window.location.href = '../index.html';
     });
   </script>
 </body>

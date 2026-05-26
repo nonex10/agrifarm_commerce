@@ -13,7 +13,6 @@
     <div class="auth-card">
       <h1>Welcome Back</h1>
       <p class="subtitle">Sign in to your AgriFresh account</p>
-
       <div id="error-msg"></div>
 
       <form class="auth-form" id="login-form" novalidate>
@@ -37,43 +36,40 @@
   </main>
 
   <div id="footer-placeholder"></div>
-
   <script src="../js/app.js"></script>
   <script src="../js/layout.js"></script>
   <script>
     injectLayout('../');
 
-    document.getElementById('login-form').addEventListener('submit', (e) => {
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('email').value.trim();
+      const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const errEl = document.getElementById('error-msg');
-      const btn = document.getElementById('submit-btn');
+      const errEl    = document.getElementById('error-msg');
+      const btn      = document.getElementById('submit-btn');
 
       if (!email || !password) {
         errEl.innerHTML = `<div class="alert-error">Please fill in all fields.</div>`;
         return;
       }
 
-      btn.disabled = true;
+      btn.disabled  = true;
       btn.innerHTML = `<span class="spinner"></span> Signing in…`;
+      errEl.innerHTML = '';
 
-      // Simulate auth (demo: any credentials work)
-      setTimeout(() => {
-        const users = JSON.parse(localStorage.getItem('agri_users') || '[]');
-        const found = users.find(u => u.email === email && u.password === password);
-        if (found) {
-          State.user = { name: found.name, email: found.email };
-          State.saveUser();
-          const params = new URLSearchParams(window.location.search);
-          window.location.href = params.get('redirect') || '../index.html';
-        } else if (users.length === 0 || !found) {
-          // Demo fallback: auto-login with placeholder
-          State.user = { name: email.split('@')[0], email };
-          State.saveUser();
-          window.location.href = '../index.html';
-        }
-      }, 800);
+      const result = await loginUser(email, password);
+
+      btn.disabled  = false;
+      btn.innerHTML = 'Sign In';
+
+      if (result.error) {
+        errEl.innerHTML = `<div class="alert-error">${result.error}</div>`;
+        return;
+      }
+
+      // Success – redirect
+      const params = new URLSearchParams(window.location.search);
+      window.location.href = params.get('redirect') || '../index.html';
     });
   </script>
 </body>

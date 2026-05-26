@@ -1,23 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Order History – AgriFresh Nepal</title>
   <link rel="stylesheet" href="../css/style.css" />
   <style>
-    .orders-list { padding:2.5rem 0; }
-    .order-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; margin-bottom:1.25rem; }
-    .order-card-header { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; }
-    .order-id { font-weight:700; font-size:1rem; }
-    .order-date { font-size:.82rem; color:var(--muted-fg); margin-top:.15rem; }
-    .order-status { padding:.25rem .75rem; border-radius:999px; font-size:.75rem; font-weight:700; background:var(--primary-light); color:var(--primary); }
-    .order-items-preview { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
-    .order-thumb { width:3rem; height:3rem; object-fit:cover; border-radius:.4rem; background:var(--muted); }
-    .order-total { font-size:.9rem; }
-    .order-total span { font-weight:700; color:var(--primary); }
+    /* ── Layout ──────────────────────────────────────────── */
+    .orders-list {
+      padding: 2.5rem 0;
+    }
+
+    .order-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      /* FIX: was missing transition – added smooth remove animation */
+      transition: opacity .3s, transform .3s;
+    }
+
+    .order-card.removing {
+      opacity: 0;
+      transform: scale(.97);
+    }
+
+    .order-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .order-id {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .order-date {
+      font-size: .82rem;
+      color: var(--muted-fg);
+      margin-top: .15rem;
+    }
+
+    .order-status {
+      padding: .25rem .75rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 700;
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .order-items-preview {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .order-thumb {
+      width: 3rem;
+      height: 3rem;
+      object-fit: cover;
+      border-radius: .4rem;
+      background: var(--muted);
+    }
+
+    .order-total {
+      font-size: .9rem;
+    }
+
+    .order-total span {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* ── Delete button ──────────────────────────────────── */
+    .order-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 1rem;
+      gap: .5rem;
+    }
+
+    .btn-delete {
+      background: none;
+      border: 1px solid var(--destructive, #c0392b);
+      color: var(--destructive, #c0392b);
+      border-radius: var(--radius);
+      padding: .35rem .85rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      font-family: inherit;
+    }
+
+    .btn-delete:hover {
+      background: var(--destructive, #c0392b);
+      color: #fff;
+    }
+
+    .btn-delete:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    /* ── Loading skeleton ───────────────────────────────── */
+    .orders-loading {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--muted-fg);
+      font-size: 1rem;
+    }
+
+    .orders-empty {
+      text-align: center;
+      padding: 4rem 1rem;
+    }
+
+    .orders-empty .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .orders-empty h2 {
+      margin-bottom: .5rem;
+    }
+
+    .orders-empty p {
+      color: var(--muted-fg);
+      margin-bottom: 1.5rem;
+    }
   </style>
 </head>
+
 <body>
   <div id="navbar-placeholder"></div>
 
@@ -29,7 +151,10 @@
       </div>
     </section>
 
-    <div class="container orders-list" id="orders-root"></div>
+    <div class="container orders-list" id="orders-root">
+      <!-- Populated by renderOrders() below -->
+      <div class="orders-loading">⏳ Loading your orders…</div>
+    </div>
   </main>
 
   <div id="footer-placeholder"></div>
@@ -39,11 +164,16 @@
   <script>
     injectLayout('../');
 
-    function renderOrders() {
+    /* ── Render the order list ──────────────────────────── */
+    async function renderOrders() {
       const root = document.getElementById('orders-root');
-      const orders = JSON.parse(localStorage.getItem('agri_orders') || '[]');
 
-      if (orders.length === 0) {
+      /* BUG FIX: was reading only from localStorage.
+         Now calls loadOrders() which fetches from DB for logged-in users
+         and merges with any localStorage (guest) entries. */
+      const orders = await loadOrders();
+
+      if (!orders || orders.length === 0) {
         root.innerHTML = `
           <div class="orders-empty">
             <div class="icon">📦</div>
@@ -54,26 +184,108 @@
         return;
       }
 
-      root.innerHTML = orders.map(o => `
-        <div class="order-card">
-          <div class="order-card-header">
-            <div>
-              <p class="order-id">${o.id}</p>
-              <p class="order-date">${new Date(o.date).toLocaleDateString('en-NP', {year:'numeric',month:'long',day:'numeric'})}</p>
+      root.innerHTML = orders.map(o => {
+        const paymentLabel = o.payment === 'cod'
+          ? 'Cash on Delivery'
+          : (o.payment || '').charAt(0).toUpperCase() + (o.payment || '').slice(1);
+
+        const dateStr = o.date
+          ? new Date(o.date).toLocaleDateString('en-NP', {
+            year: 'numeric', month: 'long', day: 'numeric'
+          })
+          : '—';
+
+        /* db_id is set for backend orders, null for guest-only orders */
+        const dbId = o.db_id || null;
+        const itemCount = (o.items || []).length;
+
+        return `
+          <div class="order-card" id="order-card-${o.id}">
+            <div class="order-card-header">
+              <div>
+                <p class="order-id">${o.id}</p>
+                <p class="order-date">${dateStr}</p>
+              </div>
+              <span class="order-status">${o.status || 'Confirmed'}</span>
             </div>
-            <span class="order-status">${o.status}</span>
-          </div>
-          <div class="order-items-preview">
-            ${o.items.map(i => `<img class="order-thumb" src="${i.image||''}" alt="${i.name}" title="${i.name} × ${i.quantity}" onerror="this.src='https://placehold.co/48x48/d4e9d4/2e6b31?text=?'">`).join('')}
-          </div>
-          <p class="text-muted" style="font-size:.85rem;margin-bottom:.5rem">📍 ${o.address}</p>
-          <p class="text-muted" style="font-size:.85rem;margin-bottom:.5rem">💳 Payment: ${o.payment === 'cod' ? 'Cash on Delivery' : o.payment.charAt(0).toUpperCase() + o.payment.slice(1)}</p>
-          <p class="order-total">${o.items.length} item${o.items.length !== 1 ? 's' : ''} · Total: <span>Rs. ${o.total.toLocaleString('en-NP')}</span></p>
-        </div>
-      `).join('');
+
+            <div class="order-items-preview">
+  ${(o.items || []).map(i => `
+    <img class="order-thumb"
+          src="${resolveImage(i.image)}"
+          alt="${i.name}"
+          title="${i.name} × ${i.quantity}"
+          onerror="this.src='https://placehold.co/48x48/d4e9d4/2e6b31?text=?'">
+  `).join('')}
+</div>
+
+            <p class="text-muted" style="font-size:.85rem;margin-bottom:.5rem">
+              📍 ${o.address || '—'}
+            </p>
+            <p class="text-muted" style="font-size:.85rem;margin-bottom:.5rem">
+              💳 Payment: ${paymentLabel}
+            </p>
+            <p class="order-total">
+              ${itemCount} item${itemCount !== 1 ? 's' : ''}
+              · Total: <span>Rs. ${Number(o.total).toLocaleString('en-NP')}</span>
+            </p>
+
+            <!-- BUG FIX: Delete button – was completely missing -->
+            <div class="order-actions">
+              <button class="btn-delete"
+                      data-order-id="${o.id}"
+                      data-db-id="${dbId || ''}"
+                      onclick="handleDelete(this)">
+                🗑 Delete Order
+              </button>
+            </div>
+          </div>`;
+      }).join('');
     }
 
+    /* ── Delete handler ─────────────────────────────────── */
+    async function handleDelete(btn) {
+      const orderId = btn.dataset.orderId;
+      const dbId = btn.dataset.dbId ? parseInt(btn.dataset.dbId, 10) : null;
+
+      if (!confirm(`Delete order ${orderId}? This cannot be undone.`)) return;
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Deleting…';
+
+      const ok = await deleteOrder(orderId, dbId);
+
+      if (ok) {
+        /* Animate card out then remove from DOM */
+        const card = document.getElementById(`order-card-${orderId}`);
+        if (card) {
+          card.classList.add('removing');
+          setTimeout(() => {
+            card.remove();
+            /* If no cards left, show empty state */
+            const remaining = document.querySelectorAll('.order-card');
+            if (remaining.length === 0) {
+              document.getElementById('orders-root').innerHTML = `
+                <div class="orders-empty">
+                  <div class="icon">📦</div>
+                  <h2>No orders yet</h2>
+                  <p>Start shopping to see your orders here.</p>
+                  <a href="products.html" class="btn btn-primary">Browse Products</a>
+                </div>`;
+            }
+          }, 350);
+        }
+        showToast('Order deleted successfully');
+      } else {
+        btn.disabled = false;
+        btn.textContent = '🗑 Delete Order';
+        showToast('Failed to delete order. Please try again.', 'error');
+      }
+    }
+
+    /* ── Bootstrap ──────────────────────────────────────── */
     renderOrders();
   </script>
 </body>
+
 </html>
