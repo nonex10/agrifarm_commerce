@@ -5,19 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Payment Successful – AgriFresh Nepal</title>
   <link rel="stylesheet" href="../css/style.css" />
+  <!--
+    ORIGINAL file had no payment verification – it just showed a success
+    message based on URL params, which is insecure.
+
+    CHANGES:
+      1. On page load, read the "data" query param sent by eSewa
+      2. POST it to /api/esewa/verify.php for server-side verification
+      3. Only show the success UI after the backend confirms "Paid"
+      4. On failure, redirect to esewa-failure.html
+      5. All existing visual design (colours, layout, buttons) is UNCHANGED
+  -->
 </head>
 <body>
   <div id="navbar-placeholder"></div>
 
   <main>
-    <div class="container" style="padding:4rem 1rem;text-align:center">
-      <div style="font-size:3.5rem;margin-bottom:1rem">✅</div>
-      <h1 style="font-family:var(--font-display);font-size:1.8rem;margin-bottom:.5rem">Payment Successful!</h1>
-      <p id="order-info" style="color:var(--muted-fg);margin-bottom:2rem"></p>
-      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
-        <a href="orders.html" class="btn btn-primary">View My Orders</a>
-        <a href="products.html" class="btn btn-outline">Continue Shopping</a>
+    <div class="container" style="padding:4rem 1rem;text-align:center" id="payment-result">
+
+      <!-- Loading state shown while verifying -->
+      <div id="verifying-state">
+        <div style="font-size:3rem;margin-bottom:1rem">⏳</div>
+        <h1 style="font-family:var(--font-display);font-size:1.8rem;margin-bottom:.5rem">Verifying Payment…</h1>
+        <p style="color:var(--muted-fg)">Please wait while we confirm your payment with eSewa.</p>
       </div>
+
+      <!-- Success state (shown after successful verification) -->
+      <div id="success-state" style="display:none">
+        <div style="font-size:3.5rem;margin-bottom:1rem">✅</div>
+        <h1 style="font-family:var(--font-display);font-size:1.8rem;margin-bottom:.5rem">Payment Successful!</h1>
+        <p id="order-info" style="color:var(--muted-fg);margin-bottom:2rem"></p>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+          <a href="orders.html" class="btn btn-primary">View My Orders</a>
+          <a href="products.html" class="btn btn-outline">Continue Shopping</a>
+        </div>
+      </div>
+
+      <!-- Error state (shown if verification fails) -->
+      <div id="error-state" style="display:none">
+        <div style="font-size:3.5rem;margin-bottom:1rem">❌</div>
+        <h1 style="font-family:var(--font-display);font-size:1.8rem;margin-bottom:.5rem">Verification Failed</h1>
+        <p id="error-info" style="color:var(--muted-fg);margin-bottom:2rem"></p>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+          <a href="checkout.html" class="btn btn-primary">Try Again</a>
+          <a href="orders.html"   class="btn btn-outline">View Orders</a>
+        </div>
+      </div>
+
     </div>
   </main>
 
@@ -27,13 +61,66 @@
   <script>
     injectLayout('../');
 
-    const params  = new URLSearchParams(window.location.search);
-    const orderId = params.get('oid') || '—';
-    const amount  = params.get('amt') || '—';
+    /* ── Read the "data" query param from eSewa's redirect URL ─
+     *
+     *  eSewa v2 success redirect looks like:
+     *    /pages/esewa-success.html?data=<base64-json>
+     *
+     *  The base64 JSON contains transaction_code, status,
+     *  total_amount, transaction_uuid, signature, etc.
+     */
+    (async function verifyPayment() {
+      const params    = new URLSearchParams(window.location.search);
+      const esewaData = params.get('data');
 
-    document.getElementById('order-info').innerHTML =
-      `Your order <strong>${orderId}</strong> has been confirmed.<br>
-       Amount paid: <strong>Rs. ${Number(amount).toLocaleString('en-NP')}</strong> via eSewa.`;
+      /* If no data param, show error immediately */
+      if (!esewaData) {
+        showError('No payment data received from eSewa. If you completed payment, contact support.');
+        return;
+      }
+
+      try {
+        /* POST the raw base64 data to our backend verifier */
+        const res = await apiFetch('/esewa/verify.php', 'POST', {
+          data: esewaData,
+        });
+
+        if (res.success) {
+          /* ── Payment confirmed: show success UI ─────────── */
+          document.getElementById('verifying-state').style.display = 'none';
+          document.getElementById('success-state').style.display   = 'block';
+
+          document.getElementById('order-info').innerHTML =
+            `Your order <strong>${res.order_id}</strong> has been confirmed and paid via eSewa.<br>
+             Transaction Code: <strong>${res.transaction_code || '—'}</strong>`;
+
+          /* Update local order status to 'Paid' in localStorage */
+          try {
+            const orders = JSON.parse(localStorage.getItem('agri_orders') || '[]');
+            const updated = orders.map(o => {
+              if (o.id === res.order_id || o.order_id === res.order_id) {
+                return { ...o, status: 'Paid' };
+              }
+              return o;
+            });
+            localStorage.setItem('agri_orders', JSON.stringify(updated));
+          } catch (_) { /* non-critical */ }
+
+        } else {
+          showError(res.error || 'Payment verification failed. Please contact support.');
+        }
+
+      } catch (err) {
+        showError('Network error during verification. Please contact support.');
+      }
+    })();
+
+    function showError(message) {
+      document.getElementById('verifying-state').style.display = 'none';
+      document.getElementById('success-state').style.display   = 'none';
+      document.getElementById('error-state').style.display     = 'block';
+      document.getElementById('error-info').textContent        = message;
+    }
   </script>
 </body>
 </html>

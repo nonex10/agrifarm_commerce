@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel – AgriFresh Nepal</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--fg); margin: 0; }
+
+    /* ── Login screen ── */
+    .admin-login {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .admin-login-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 2.5rem 2rem; width: 100%; max-width: 380px;
+      text-align: center;
+    }
+    .admin-login-card h1 { font-size: 1.4rem; margin-bottom: .25rem; }
+    .admin-login-card p  { color: var(--muted-fg); font-size: .875rem; margin-bottom: 1.5rem; }
+
+    /* ── Shell ── */
+    .admin-shell { display: none; min-height: 100vh; flex-direction: column; }
+    .admin-shell.visible { display: flex; }
+
+    .admin-topbar {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: .9rem 1.5rem; display: flex; align-items: center; justify-content: space-between;
+    }
+    .admin-topbar h1 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+
+    .admin-body { display: flex; flex: 1; }
+
+    /* ── Sidebar ── */
+    .admin-sidebar {
+      width: 200px; background: var(--card); border-right: 1px solid var(--border);
+      padding: 1.25rem 0; flex-shrink: 0;
+    }
+    .admin-nav-btn {
+      display: flex; align-items: center; gap: .6rem;
+      width: 100%; padding: .7rem 1.25rem; border: none; background: none;
+      font-family: inherit; font-size: .9rem; cursor: pointer; color: var(--fg);
+      transition: background .15s; text-align: left;
+    }
+    .admin-nav-btn:hover    { background: var(--muted); }
+    .admin-nav-btn.active   { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+
+    /* ── Main content ── */
+    .admin-main { flex: 1; padding: 1.75rem; overflow-y: auto; }
+    .admin-tab  { display: none; }
+    .admin-tab.active { display: block; }
+
+    .admin-tab h2 { font-size: 1.15rem; margin-bottom: 1.25rem; }
+
+    /* ── Stats row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.75rem; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1rem 1.25rem;
+    }
+    .stat-card .stat-label { font-size: .75rem; color: var(--muted-fg); text-transform: uppercase; letter-spacing: .05em; }
+    .stat-card .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--primary); margin-top: .2rem; }
+
+    /* ── Table ── */
+    .admin-table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    th, td { padding: .65rem .85rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-weight: 600; color: var(--muted-fg); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; background: var(--muted); }
+    tr:hover td { background: var(--primary-light); }
+    .badge-status {
+      padding: .2rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 700;
+      background: var(--primary-light); color: var(--primary);
+    }
+
+    /* ── Product form ── */
+    .product-form-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .product-form-card h3 { font-size: 1rem; margin-bottom: 1rem; }
+    .product-form { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
+    .product-form .full { grid-column: 1 / -1; }
+    .product-form input, .product-form textarea, .product-form select {
+      width: 100%; padding: .5rem .75rem; border: 1px solid var(--border);
+      border-radius: var(--radius); font-family: inherit; font-size: .875rem;
+      background: var(--bg); color: var(--fg);
+    }
+    .product-form textarea { resize: vertical; min-height: 70px; }
+    label.pf-label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: .3rem; color: var(--muted-fg); }
+
+    /* ── Misc ── */
+    .loading-row td { text-align: center; color: var(--muted-fg); padding: 2rem; }
+    .msg-body { max-width: 320px; white-space: pre-wrap; font-size: .82rem; }
+    .btn-sm-danger {
+      background: none; border: 1px solid var(--destructive, #c0392b);
+      color: var(--destructive, #c0392b); border-radius: var(--radius);
+      padding: .25rem .65rem; font-size: .75rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: background .15s, color .15s;
+    }
+    .btn-sm-danger:hover { background: var(--destructive, #c0392b); color: #fff; }
+    #admin-error { color: #c0392b; font-size: .85rem; margin-top: .5rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+
+  <!-- ── LOGIN SCREEN ──────────────────────────────────── -->
+  <div class="admin-login" id="admin-login">
+    <div class="admin-login-card">
+      <div style="font-size:2rem;margin-bottom:.5rem">🌿</div>
+      <h1>Admin Panel</h1>
+      <p>AgriFresh Nepal</p>
+      <div class="form-group">
+        <label class="pf-label" for="admin-pass">Admin Password</label>
+        <input id="admin-pass" class="input" type="password" placeholder="Enter password"
+               onkeydown="if(event.key==='Enter') checkLogin()">
+      </div>
+      <div id="admin-error"></div>
+      <button class="btn btn-primary w-full" style="margin-top:1rem" onclick="checkLogin()">
+        Sign In
+      </button>
+    </div>
+  </div>
+
+  <!-- ── ADMIN SHELL ───────────────────────────────────── -->
+  <div class="admin-shell" id="admin-shell">
+
+    <div class="admin-topbar">
+      <h1>🌿 AgriFresh Admin</h1>
+      <div style="display:flex;align-items:center;gap:1rem">
+        <span style="font-size:.85rem;color:var(--muted-fg)">Logged in as Admin</span>
+        <button class="btn btn-outline btn-sm" onclick="adminLogout()">Sign Out</button>
+        <a href="index.html" class="btn btn-outline btn-sm">View Site →</a>
+      </div>
+    </div>
+
+    <div class="admin-body">
+      <!-- Sidebar -->
+      <aside class="admin-sidebar">
+        <button class="admin-nav-btn active" onclick="switchTab('orders', this)">📦 Orders</button>
+        <button class="admin-nav-btn"        onclick="switchTab('messages', this)">💬 Messages</button>
+        <button class="admin-nav-btn"        onclick="switchTab('products', this)">🥦 Products</button>
+      </aside>
+
+      <!-- Main -->
+      <main class="admin-main">
+
+        <!-- ORDERS TAB -->
+        <div class="admin-tab active" id="tab-orders">
+          <h2>📦 All Orders</h2>
+          <div class="stats-row">
+            <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value" id="stat-orders">—</div></div>
+            <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value" id="stat-revenue">—</div></div>
+            <div class="stat-card"><div class="stat-label">Customers</div><div class="stat-value" id="stat-customers">—</div></div>
+          </div>
+          <div class="admin-table-wrap">
+            <table id="orders-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th><th>Customer</th><th>Date</th>
+                  <th>Items</th><th>Total</th><th>Payment</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="orders-tbody">
+                <tr class="loading-row"><td colspan="7">⏳ Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MESSAGES TAB -->
+        <div class="admin-tab" id="tab-messages">
+          <h2>💬 Contact Messages</h2>
+          <div class="stats-row">
+            <div class="stat-card"><div class="stat-label">Total Messages</div><div class="stat-value" id="stat-messages">—</div></div>
+          </div>
+          <div class="admin-table-wrap">
+            <table>
+              <thead>
+                <tr><th>#</th><th>Name</th><th>Email</th><th>Reason</th><th>Subject</th><th>Message</th><th>Date</th></tr>
+              </thead>
+              <tbody id="messages-tbody">
+                <tr class="loading-row"><td colspan="7">⏳ Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PRODUCTS TAB -->
+        <div class="admin-tab" id="tab-products">
+          <h2>🥦 Products</h2>
+
+          <!-- Add product form -->
+          <div class="product-form-card">
+            <h3>➕ Add New Product</h3>
+            <div class="product-form" id="add-product-form">
+              <div>
+                <label class="pf-label">Name *</label>
+                <input id="p-name" type="text" placeholder="e.g. Organic Tomatoes">
+              </div>
+              <div>
+                <label class="pf-label">Category *</label>
+                <select id="p-category">
+                  <option value="Vegetables">Vegetables</option>
+                  <option value="Fruits">Fruits</option>
+                  <option value="Dairy">Dairy</option>
+                  <option value="Grains">Grains</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label class="pf-label">Price (Rs.) *</label>
+                <input id="p-price" type="number" min="1" placeholder="120">
+              </div>
+              <div>
+                <label class="pf-label">Farmer / Source</label>
+                <input id="p-farmer" type="text" placeholder="e.g. Ram Bahadur Farm">
+              </div>
+              <div class="full">
+                <label class="pf-label">Description</label>
+                <textarea id="p-desc" placeholder="Short product description…"></textarea>
+              </div>
+              <div>
+                <label class="pf-label">Image filename</label>
+                <input id="p-image" type="text" placeholder="uploads/tomato.jpg">
+              </div>
+              <div style="display:flex;align-items:flex-end">
+                <button class="btn btn-primary w-full" onclick="addProduct()">Add Product</button>
+              </div>
+            </div>
+            <div id="product-form-msg" style="margin-top:.5rem;font-size:.85rem"></div>
+          </div>
+
+          <!-- Products table -->
+          <div class="admin-table-wrap">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Farmer</th><th>Action</th></tr>
+              </thead>
+              <tbody id="products-tbody">
+                <tr class="loading-row"><td colspan="6">⏳ Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const API          = 'http://localhost/agrifarm/api';
+    const ADMIN_PASS   = 'admin123'; // Change this to your preferred password
+
+    /* ── Auth ───────────────────────────────────────────── */
+    function checkLogin() {
+      const val = document.getElementById('admin-pass').value;
+      if (val === ADMIN_PASS) {
+        sessionStorage.setItem('agri_admin', '1');
+        document.getElementById('admin-login').style.display = 'none';
+        document.getElementById('admin-shell').classList.add('visible');
+        loadAll();
+      } else {
+        document.getElementById('admin-error').textContent = 'Incorrect password.';
+      }
+    }
+
+    function adminLogout() {
+      sessionStorage.removeItem('agri_admin');
+      location.reload();
+    }
+
+    // Auto-login if already authenticated this session
+    if (sessionStorage.getItem('agri_admin') === '1') {
+      document.getElementById('admin-login').style.display = 'none';
+      document.getElementById('admin-shell').classList.add('visible');
+    }
+
+    /* ── Tab switching ──────────────────────────────────── */
+    function switchTab(name, btn) {
+      document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    /* ── API helper ─────────────────────────────────────── */
+    async function api(path, method = 'GET', body = null) {
+      const opts = { method, credentials: 'include', headers: { 'Content-Type': 'application/json' } };
+      if (body) opts.body = JSON.stringify(body);
+      try {
+        const res   = await fetch(API + path, opts);
+        const text  = await res.text();
+        return JSON.parse(text.trim().replace(/^\uFEFF/, ''));
+      } catch (e) {
+        return { error: e.message };
+      }
+    }
+
+    /* ── Load everything ────────────────────────────────── */
+    function loadAll() {
+      loadOrders();
+      loadMessages();
+      loadProducts();
+    }
+
+    /* ── ORDERS ─────────────────────────────────────────── */
+    async function loadOrders() {
+      const data  = await api('/admin/orders.php');
+      const tbody = document.getElementById('orders-tbody');
+
+      if (data.error || !data.orders) {
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="7">⚠️ ${data.error || 'Could not load orders'}</td></tr>`;
+        return;
+      }
+
+      const orders   = data.orders;
+      const revenue  = orders.reduce((s, o) => s + parseFloat(o.total || 0), 0);
+      const custIds  = new Set(orders.map(o => o.user_id).filter(Boolean));
+
+      document.getElementById('stat-orders').textContent    = orders.length;
+      document.getElementById('stat-revenue').textContent   = 'Rs. ' + revenue.toLocaleString('en-NP');
+      document.getElementById('stat-customers').textContent = custIds.size;
+
+      if (orders.length === 0) {
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="7">No orders yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = orders.map(o => {
+        const date = o.created_at ? new Date(o.created_at).toLocaleDateString('en-NP') : '—';
+        const pay  = o.payment_method === 'cod' ? 'Cash on Delivery' : (o.payment_method || '').toUpperCase();
+        return `
+          <tr>
+            <td><strong>ORD-${o.id}</strong></td>
+            <td>${o.customer_name || '—'}</td>
+            <td>${date}</td>
+            <td>${o.item_count || '—'}</td>
+            <td>Rs. ${Number(o.total).toLocaleString('en-NP')}</td>
+            <td>${pay}</td>
+            <td><span class="badge-status">${o.status || 'Confirmed'}</span></td>
+          </tr>`;
+      }).join('');
+    }
+
+    /* ── MESSAGES ───────────────────────────────────────── */
+    async function loadMessages() {
+      const data  = await api('/admin/messages.php');
+      const tbody = document.getElementById('messages-tbody');
+
+      if (data.error || !data.messages) {
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="7">⚠️ ${data.error || 'Could not load messages'}</td></tr>`;
+        return;
+      }
+
+      const msgs = data.messages;
+      document.getElementById('stat-messages').textContent = msgs.length;
+
+      if (msgs.length === 0) {
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="7">No messages yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = msgs.map(m => {
+        const date = m.created_at ? new Date(m.created_at).toLocaleDateString('en-NP') : '—';
+        return `
+          <tr>
+            <td>${m.id}</td>
+            <td>${m.name}</td>
+            <td><a href="mailto:${m.email}">${m.email}</a></td>
+            <td>${m.reason || '—'}</td>
+            <td>${m.subject || '—'}</td>
+            <td class="msg-body">${m.message}</td>
+            <td>${date}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    /* ── PRODUCTS ───────────────────────────────────────── */
+    async function loadProducts() {
+      const data  = await api('/products/list.php');
+      const tbody = document.getElementById('products-tbody');
+
+      if (data.error || !data.products) {
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="6">⚠️ ${data.error || 'Could not load products'}</td></tr>`;
+        return;
+      }
+
+      const products = data.products;
+      if (products.length === 0) {
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="6">No products yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = products.map(p => `
+        <tr id="prod-row-${p.id}">
+          <td>${p.id}</td>
+          <td><strong>${p.name}</strong></td>
+          <td>${p.category}</td>
+          <td>Rs. ${Number(p.price).toLocaleString('en-NP')}</td>
+          <td>${p.farmer || '—'}</td>
+          <td>
+            <button class="btn-sm-danger" onclick="deleteProduct(${p.id})">🗑 Delete</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    async function addProduct() {
+      const name     = document.getElementById('p-name').value.trim();
+      const category = document.getElementById('p-category').value;
+      const price    = parseFloat(document.getElementById('p-price').value);
+      const farmer   = document.getElementById('p-farmer').value.trim();
+      const desc     = document.getElementById('p-desc').value.trim();
+      const image    = document.getElementById('p-image').value.trim();
+      const msgEl    = document.getElementById('product-form-msg');
+
+      if (!name || !price) {
+        msgEl.style.color = '#c0392b';
+        msgEl.textContent = 'Name and price are required.';
+        return;
+      }
+
+      const result = await api('/admin/add_product.php', 'POST', { name, category, price, farmer, description: desc, image });
+
+      if (result.error) {
+        msgEl.style.color = '#c0392b';
+        msgEl.textContent = result.error;
+        return;
+      }
+
+      msgEl.style.color = '#2e6b31';
+      msgEl.textContent = '✅ Product added successfully!';
+      ['p-name','p-price','p-farmer','p-desc','p-image'].forEach(id => document.getElementById(id).value = '');
+      loadProducts();
+      setTimeout(() => msgEl.textContent = '', 3000);
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm('Delete this product? This cannot be undone.')) return;
+      const result = await api('/admin/delete_product.php', 'POST', { id });
+      if (result.error) { alert('Error: ' + result.error); return; }
+      const row = document.getElementById('prod-row-' + id);
+      if (row) row.remove();
+    }
+
+    // Init
+    if (sessionStorage.getItem('agri_admin') === '1') loadAll();
+  </script>
+</body>
+</html>

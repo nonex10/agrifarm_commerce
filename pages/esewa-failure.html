@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Failed – AgriFresh Nepal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <!--
+    NEW FILE – required by eSewa v2 as the failure_url destination.
+    Design matches the existing success/checkout pages exactly.
+    Order status remains 'Pending' in DB (no backend call needed here).
+  -->
+</head>
+<body>
+  <div id="navbar-placeholder"></div>
+
+  <main>
+    <div class="container" style="padding:4rem 1rem;text-align:center">
+
+      <div style="font-size:3.5rem;margin-bottom:1rem">❌</div>
+      <h1 style="font-family:var(--font-display);font-size:1.8rem;margin-bottom:.5rem">Payment Failed</h1>
+      <p id="failure-msg" style="color:var(--muted-fg);margin-bottom:2rem">
+        Your eSewa payment was not completed or was cancelled.<br>
+        Your order has been saved — you can retry payment from your orders page,
+        or place a new order with Cash on Delivery.
+      </p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <a href="checkout.html" class="btn btn-primary">Try Again</a>
+        <a href="orders.html"   class="btn btn-outline">My Orders</a>
+        <a href="products.html" class="btn btn-outline">Continue Shopping</a>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+  <script src="../js/app.js"></script>
+  <script src="../js/layout.js"></script>
+  <script>
+    injectLayout('../');
+
+    /*
+     * eSewa sends no useful query params on failure beyond the URL itself.
+     * The order remains 'Pending' in the database — no status update needed.
+     * The customer can come back and retry.
+     */
+  </script>
+</body>
+</html>

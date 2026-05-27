@@ -112,3 +112,26 @@ INSERT INTO products (id, name, category, price, farmer, description, rating, re
 ALTER TABLE orders 
 ADD COLUMN transaction_uuid VARCHAR(100) NULL AFTER id,
 ADD COLUMN payment_status VARCHAR(50) DEFAULT 'Unpaid' AFTER payment_method;
+
+
+USE agrifresh;
+CREATE TABLE IF NOT EXISTS esewa_transactions (
+    id               INT            NOT NULL AUTO_INCREMENT,
+    order_id         INT            NOT NULL,
+    transaction_code VARCHAR(100)   NOT NULL DEFAULT '',  -- eSewa's internal txn code
+    transaction_uuid VARCHAR(100)   NOT NULL,             -- our "ORD-{id}"
+    amount           DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
+    status           VARCHAR(30)    NOT NULL DEFAULT 'PENDING',
+    raw_response     TEXT,                                -- full JSON from eSewa status API
+    created_at       TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_esewa_uuid (transaction_uuid),          -- prevent duplicate callbacks
+    KEY idx_esewa_order (order_id),
+
+    CONSTRAINT fk_esewa_order
+        FOREIGN KEY (order_id)
+        REFERENCES orders (id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
